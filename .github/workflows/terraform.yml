@@ -25,9 +25,9 @@ jobs:
 
       # No backend and no credentials: this catches type errors, bad references
       # and unknown provider arguments on every PR, for free.
-      - name: Validate bootstrap and every environment
+      - name: Validate every client stack
         run: |
-          for d in bootstrap envs/staging envs/prod; do
+          for d in $(find clients -mindepth 2 -maxdepth 2 -type d); do
             echo "::group::$d"
             terraform -chdir=$d init -backend=false -input=false
             terraform -chdir=$d validate
@@ -49,15 +49,20 @@ jobs:
           exit-code: "1"
 
   plan:
-    name: plan (${{ matrix.env }})
+    name: plan (${{ matrix.client }}/${{ matrix.env }})
     runs-on: ubuntu-latest
     needs: static
     if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
       matrix:
-        env: [staging, prod]
-    environment: ${{ matrix.env }}-plan
+        include:
+          - { client: acme, env: staging }
+          - { client: acme, env: prod }
+          - { client: training, env: staging }
+    # Each client-environment gets its own GitHub environment, so its state
+    # credentials are scoped to that one COS bucket.
+    environment: ${{ matrix.client }}-${{ matrix.env }}-plan
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -69,5 +74,6 @@ jobs:
           TENCENTCLOUD_SECRET_ID: ${{ secrets.TENCENTCLOUD_SECRET_ID }}
           TENCENTCLOUD_SECRET_KEY: ${{ secrets.TENCENTCLOUD_SECRET_KEY }}
         run: |
-          terraform -chdir=envs/${{ matrix.env }} init -backend-config=backend.hcl -input=false
-          terraform -chdir=envs/${{ matrix.env }} plan -input=false -lock-timeout=5m
+          d=clients/${{ matrix.client }}/${{ matrix.env }}
+          terraform -chdir=$d init -backend-config=backend.hcl -input=false
+          terraform -chdir=$d plan -input=false -lock-timeout=5m

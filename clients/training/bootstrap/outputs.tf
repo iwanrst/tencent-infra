@@ -1,0 +1,1 @@
+../../../stacks/bootstrap/outputs.tf

@@ -7,22 +7,37 @@ environments — everything that varies is a variable.
 ## Layout
 
 ```
-bootstrap/           Run-once: creates the COS state buckets (see its README)
-modules/
+modules/             The reusable logic. Nothing client-specific.
   vpc/               VPC, tiered subnets, route tables, NAT gateways, flow logs
-  network-acl/       Stateless subnet ACLs — the segmentation boundary
-  security-group/    Data-driven security groups with group-to-group references
+  network-acl/       Stateless subnet ACLs -- the segmentation boundary
+  security-group/    Data-driven SGs with group-to-group references
   tke/               Managed TKE cluster, node pools, endpoints, addons
-  platform/          Composition root: wires the four together, applies
-                     environment-aware defaults
-envs/
-  staging/           Thin root — identical code to prod
-  prod/              Thin root — identical code to staging
+  platform/          Composition root + environment-aware defaults
+
+stacks/              The generic Terraform roots. One canonical copy each.
+  environment/       Root for any client+environment
+  bootstrap/         Root for a client's state buckets
+
+clients/             Values only -- terraform.tfvars + backend.hcl per stack.
+  acme/
+    bootstrap/  staging/  prod/
+  training/
+    bootstrap/  staging/
 ```
 
-`envs/staging` and `envs/prod` contain the **same `.tf` files**. All divergence
-lives in `terraform.tfvars` and `backend.hcl`. If you find yourself editing
-`main.tf` in one environment only, that is a design smell — add a variable.
+Each directory under `clients/` holds **only** `terraform.tfvars` and
+`backend.hcl`. The `.tf` files are symlinks to `stacks/`, so there is exactly
+one copy of the root configuration in the repo and a fix lands for every client
+at once. Terraform resolves relative module sources from the symlink's own
+directory, which is what makes this work.
+
+```bash
+make stacks                              # list every client stack
+make plan CLIENT=training ENV=staging
+```
+
+If you find yourself wanting to edit `main.tf` for one client only, that is a
+design smell — add a variable to `modules/platform` instead.
 
 ## Architecture
 
@@ -89,35 +104,52 @@ is overridable; the default is what you get for free.
 
 ## Onboarding a new client
 
-0. **Bootstrap the state backend first.** `envs/*` declare `backend "cos"`, so
-   the buckets must exist before their first `init`. Set `client`, `region` and
-   `environments` in `bootstrap/terraform.tfvars`, then:
+Worked example: a client called `training`, staging only.
 
-   ```bash
-   make bootstrap        # creates one versioned COS bucket per environment
-   make bootstrap-adopt  # moves bootstrap off its own local state file
-   ```
+**1. Pick an address range.** Every client-environment pair needs a distinct
+/16 so any two can be peered later without renumbering. `10.10` and `10.20`
+belong to acme, so training staging takes `10.30.0.0/16`.
 
-   This writes `envs/*/backend.hcl` with the real bucket names — the account
-   APPID is read from the API rather than looked up by hand. Commit the result.
-   Full detail in [`bootstrap/README.md`](bootstrap/README.md).
-
-1. Copy `envs/` into the client's repo (or a new directory per client).
-2. Change five things in `terraform.tfvars`:
-   - `client` — the naming prefix for every resource
-   - `region`
-   - `vpc_cidr` and the matching `tiers` block
-   - `admin_cidrs` — the client's real office / VPN / CI ranges
-   - `node_pools` — sizing
-3. `make init ENV=staging && make plan ENV=staging`
-
-Keep every client-environment pair on a distinct VPC CIDR so they stay peerable
-later. The convention used in the shipped example:
+**2. Create the two value files.**
 
 ```
-acme staging 10.10.0.0/16     acme prod 10.20.0.0/16
-beta staging 10.30.0.0/16     beta prod 10.40.0.0/16
+clients/training/bootstrap/terraform.tfvars   # client, region, environments
+clients/training/staging/terraform.tfvars     # client, environment, region,
+                                              # vpc_cidr, tiers, admin_cidrs,
+                                              # node_pools
 ```
+
+**3. Symlink the shared roots in.**
+
+```bash
+for f in main.tf providers.tf variables.tf outputs.tf versions.tf; do
+  ln -sf ../../../stacks/environment/$f clients/training/staging/$f
+done
+for f in main.tf providers.tf variables.tf outputs.tf versions.tf backend_files.tf; do
+  ln -sf ../../../stacks/bootstrap/$f clients/training/bootstrap/$f
+done
+```
+
+**4. Create the state bucket, then the infrastructure.**
+
+```bash
+make bootstrap CLIENT=training              # creates the COS bucket,
+                                            # writes staging/backend.hcl
+make bootstrap-adopt CLIENT=training        # bootstrap stops using local state
+git add clients/training && git commit      # commit the generated backend.hcl
+
+make init CLIENT=training ENV=staging
+make plan CLIENT=training ENV=staging
+make apply CLIENT=training ENV=staging
+```
+
+Everything else — the tier layout, the ACL and security group baseline, node
+pool shape, TKE settings — comes from `modules/platform` defaults. Only override
+what this client genuinely needs to differ on.
+
+Adding `prod` for training later is a new key in its bootstrap `environments`
+map plus a `clients/training/prod/` directory; re-running `make bootstrap
+CLIENT=training` creates the second bucket.
 
 ## Usage
 
@@ -125,11 +157,11 @@ beta staging 10.30.0.0/16     beta prod 10.40.0.0/16
 export TENCENTCLOUD_SECRET_ID=...
 export TENCENTCLOUD_SECRET_KEY=...
 
-make bootstrap             # once per account: create the state buckets
-make init ENV=staging      # init against the COS backend
-make plan ENV=staging      # writes staging.tfplan for review
-make apply ENV=staging     # applies the reviewed plan file
-make kubeconfig ENV=staging
+make bootstrap  CLIENT=acme                  # once per client: state buckets
+make init       CLIENT=acme ENV=staging      # init against the COS backend
+make plan       CLIENT=acme ENV=staging      # writes a plan file for review
+make apply      CLIENT=acme ENV=staging      # applies the reviewed plan file
+make kubeconfig CLIENT=acme ENV=staging
 ```
 
 `make apply` refuses to run without a plan file: what gets reviewed is what

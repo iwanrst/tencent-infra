@@ -1,0 +1,1 @@
+../../../stacks/environment/outputs.tf

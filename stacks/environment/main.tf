@@ -4,7 +4,7 @@
 ###############################################################################
 
 module "platform" {
-  source = "../../modules/platform"
+  source = "../../../modules/platform"
 
   # Identity
   client      = var.client

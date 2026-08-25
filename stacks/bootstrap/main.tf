@@ -1,7 +1,7 @@
 ###############################################################################
 # Terraform state backend -- run once per client account.
 #
-# This root exists to solve the ordering problem: envs/* declare `backend "cos"`,
+# This root exists to solve the ordering problem: the client stacks declare `backend "cos"`,
 # which must already exist before their first `terraform init`. Nothing else
 # belongs here. Keep it boring and rarely touched.
 ###############################################################################

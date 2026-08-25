@@ -2,13 +2,13 @@
 
 Creates the COS buckets that hold Terraform state for every environment.
 
-Run this **once per client account**, before anything in `envs/` can be
+Run this **once per client**, before that client's stacks can be
 initialised. After that it is touched only when adding an environment or
 changing retention.
 
 ## Why it is a separate root
 
-`envs/staging` and `envs/prod` both declare `backend "cos"`. That bucket has to
+The client stacks under `clients/<client>/` all declare `backend "cos"`. That bucket has to
 exist before their first `terraform init` — a root cannot create the bucket it
 stores its own state in. Bootstrap breaks the cycle: it starts on **local
 state**, creates the buckets, and then adopts one of them for itself.
@@ -20,7 +20,7 @@ state**, creates the buckets, and then adopts one of them for itself.
 | COS bucket | environment | Versioned, encrypted, private, `prevent_destroy` |
 | Lifecycle rule | bucket | Expires superseded versions; aborts stale multipart uploads |
 | CAM policy | environment | Least-privilege state access, scoped to that one bucket |
-| `backend.hcl` | environment | Written into `envs/<name>/` with the real bucket name |
+| `backend.hcl` | environment | Written into `clients/<client>/<env>/` with the real bucket name |
 
 One bucket **per environment**, not one shared bucket with prefixes: a
 credential scoped to staging must have no path to production state, and the
@@ -29,23 +29,20 @@ bucket is the only boundary a COS policy can express cleanly.
 ## First run
 
 ```bash
-cd bootstrap
 export TENCENTCLOUD_SECRET_ID=...
 export TENCENTCLOUD_SECRET_KEY=...
 
-# edit terraform.tfvars: client, region, environments
-terraform init
-terraform apply
+# edit clients/<client>/bootstrap/terraform.tfvars: client, region, environments
+make bootstrap CLIENT=training
 ```
 
-This writes `envs/staging/backend.hcl` and `envs/prod/backend.hcl` with the
-real bucket names — the account APPID is read from the API, so it never has to
+This writes `clients/training/staging/backend.hcl` with the real bucket name — the account APPID is read from the API, so it never has to
 be looked up by hand. Commit the result.
 
 Then bring each environment up:
 
 ```bash
-make init ENV=staging && make plan ENV=staging
+make init CLIENT=training ENV=staging && make plan CLIENT=training ENV=staging
 ```
 
 ## Second step: stop depending on a local state file
@@ -53,14 +50,11 @@ make init ENV=staging && make plan ENV=staging
 Bootstrap has now created a bucket it can live in. Move its own state there:
 
 ```bash
-cd bootstrap
-terraform output -raw self_backend_hcl > backend.hcl
-terraform init -backend-config=backend.hcl -migrate-state
-rm -f terraform.tfstate terraform.tfstate.backup
+make bootstrap-adopt CLIENT=training
 ```
 
 Its state lands under the `bootstrap/` prefix of the production bucket. Skip
-this and `bootstrap/terraform.tfstate` stays on one laptop — which is exactly
+this and `clients/<client>/bootstrap/terraform.tfstate` stays on one laptop — which is exactly
 the failure mode this repo exists to avoid.
 
 ## Notes

@@ -26,7 +26,7 @@ variable "environments" {
     staging must not be able to read or corrupt production state, and bucket-level
     separation is the only boundary COS policies can express cleanly.
 
-      state_prefix           - key prefix inside the bucket, matches envs/<name>
+      state_prefix           - key prefix inside the bucket, matches the sibling directory name
       noncurrent_expiry_days - how long superseded state versions are retained
       multi_az               - replicate across AZs within the region
   EOT
@@ -110,7 +110,7 @@ variable "self_state_environment" {
 
 variable "write_backend_files" {
   description = <<-EOT
-    Write the generated backend config to envs/<name>/backend.hcl. Keeps the
+    Write the generated backend config to the sibling clients/<client>/<env>/backend.hcl. Keeps the
     bucket name and APPID from drifting out of sync with reality.
 
     Set false when the environments live in a separate repository, and copy the

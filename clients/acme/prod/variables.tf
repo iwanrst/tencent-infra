@@ -1,0 +1,1 @@
+../../../stacks/environment/variables.tf

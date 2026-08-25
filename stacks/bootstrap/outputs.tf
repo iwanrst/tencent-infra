@@ -39,7 +39,7 @@ output "app_id" {
 output "backend_hcl" {
   description = <<-EOT
     Ready-to-write backend config per environment. With write_backend_files
-    enabled (the default) these are already on disk in envs/*/backend.hcl.
+    enabled (the default) these are already on disk beside this root.
 
     To emit one by hand instead -- note that `terraform output -raw` takes an
     output name, not an index expression, so this has to go through JSON:
