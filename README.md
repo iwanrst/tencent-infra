@@ -7,6 +7,7 @@ environments — everything that varies is a variable.
 ## Layout
 
 ```
+bootstrap/           Run-once: creates the COS state buckets (see its README)
 modules/
   vpc/               VPC, tiered subnets, route tables, NAT gateways, flow logs
   network-acl/       Stateless subnet ACLs — the segmentation boundary
@@ -88,6 +89,19 @@ is overridable; the default is what you get for free.
 
 ## Onboarding a new client
 
+0. **Bootstrap the state backend first.** `envs/*` declare `backend "cos"`, so
+   the buckets must exist before their first `init`. Set `client`, `region` and
+   `environments` in `bootstrap/terraform.tfvars`, then:
+
+   ```bash
+   make bootstrap        # creates one versioned COS bucket per environment
+   make bootstrap-adopt  # moves bootstrap off its own local state file
+   ```
+
+   This writes `envs/*/backend.hcl` with the real bucket names — the account
+   APPID is read from the API rather than looked up by hand. Commit the result.
+   Full detail in [`bootstrap/README.md`](bootstrap/README.md).
+
 1. Copy `envs/` into the client's repo (or a new directory per client).
 2. Change five things in `terraform.tfvars`:
    - `client` — the naming prefix for every resource
@@ -95,8 +109,7 @@ is overridable; the default is what you get for free.
    - `vpc_cidr` and the matching `tiers` block
    - `admin_cidrs` — the client's real office / VPN / CI ranges
    - `node_pools` — sizing
-3. Point `backend.hcl` at a COS bucket in the client's account.
-4. `make init ENV=staging && make plan ENV=staging`
+3. `make init ENV=staging && make plan ENV=staging`
 
 Keep every client-environment pair on a distinct VPC CIDR so they stay peerable
 later. The convention used in the shipped example:
@@ -112,6 +125,7 @@ beta staging 10.30.0.0/16     beta prod 10.40.0.0/16
 export TENCENTCLOUD_SECRET_ID=...
 export TENCENTCLOUD_SECRET_KEY=...
 
+make bootstrap             # once per account: create the state buckets
 make init ENV=staging      # init against the COS backend
 make plan ENV=staging      # writes staging.tfplan for review
 make apply ENV=staging     # applies the reviewed plan file
@@ -142,6 +156,10 @@ client.
   add the client's egress rules, until the workload's dependencies are known.
 - **Node pool `desired_capacity` is ignored after creation.** The cluster
   autoscaler owns it; Terraform sets the seed value and stays out of the way.
+- **State buckets carry `prevent_destroy` and never object lock.** Object lock
+  would stop Terraform overwriting the state object; versioning gives the
+  recovery path without breaking writes. `terraform destroy` in `bootstrap/`
+  is meant to fail.
 
 ## Development
 
