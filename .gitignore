@@ -1,0 +1,26 @@
+# Local state must never be committed -- it contains secrets in plaintext.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+
+.terraform/
+.terraform.tfstate.lock.info
+
+# Plan files embed the full state, including sensitive values.
+*.tfplan
+*.tfplan.*
+plan.out
+
+# Anything auto-generated or holding credentials.
+*.auto.tfvars
+*.auto.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+.DS_Store

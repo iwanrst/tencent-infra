@@ -1,0 +1,73 @@
+name: terraform
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  static:
+    name: fmt · validate · lint · scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Format check
+        run: terraform fmt -check -recursive .
+
+      # No backend and no credentials: this catches type errors, bad references
+      # and unknown provider arguments on every PR, for free.
+      - name: Validate every environment
+        run: |
+          for e in staging prod; do
+            echo "::group::$e"
+            terraform -chdir=envs/$e init -backend=false -input=false
+            terraform -chdir=envs/$e validate
+            echo "::endgroup::"
+          done
+
+      - uses: terraform-linters/setup-tflint@v4
+      - name: tflint
+        run: |
+          tflint --init --config="$PWD/.tflint.hcl"
+          tflint --recursive --config="$PWD/.tflint.hcl"
+
+      - name: Trivy IaC scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+  plan:
+    name: plan (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    needs: static
+    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [staging, prod]
+    environment: ${{ matrix.env }}-plan
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Plan
+        env:
+          TENCENTCLOUD_SECRET_ID: ${{ secrets.TENCENTCLOUD_SECRET_ID }}
+          TENCENTCLOUD_SECRET_KEY: ${{ secrets.TENCENTCLOUD_SECRET_KEY }}
+        run: |
+          terraform -chdir=envs/${{ matrix.env }} init -backend-config=backend.hcl -input=false
+          terraform -chdir=envs/${{ matrix.env }} plan -input=false -lock-timeout=5m
