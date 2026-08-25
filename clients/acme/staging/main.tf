@@ -1,1 +1,1 @@
-../../../stacks/environment/main.tf
+../../../stacks/roots/environment/main.tf

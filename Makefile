@@ -26,7 +26,7 @@ lint: ## Format check + tflint across modules and envs
 	tflint --recursive --config=$(CURDIR)/.tflint.hcl
 
 validate: ## Validate the shared roots and every client stack, without remote state
-	@for d in $$(find clients -mindepth 2 -maxdepth 2 -type d); do \
+	@for d in stacks/roots/environment stacks/roots/bootstrap $$(find clients -mindepth 2 -maxdepth 2 -type d); do \
 	  echo "==> $$d"; \
 	  terraform -chdir=$$d init -backend=false -input=false >/dev/null && \
 	  terraform -chdir=$$d validate || exit 1; \

@@ -1,1 +1,1 @@
-../../../stacks/bootstrap/outputs.tf
+../../../stacks/roots/bootstrap/outputs.tf

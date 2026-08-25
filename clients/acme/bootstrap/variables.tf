@@ -1,1 +1,1 @@
-../../../stacks/bootstrap/variables.tf
+../../../stacks/roots/bootstrap/variables.tf

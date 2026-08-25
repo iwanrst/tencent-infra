@@ -1,1 +1,1 @@
-../../../stacks/environment/variables.tf
+../../../stacks/roots/environment/variables.tf

@@ -1,1 +1,1 @@
-../../../stacks/bootstrap/providers.tf
+../../../stacks/roots/bootstrap/providers.tf

@@ -1,1 +1,1 @@
-../../../stacks/bootstrap/backend_files.tf
+../../../stacks/roots/bootstrap/backend_files.tf

@@ -1,1 +1,1 @@
-../../../stacks/bootstrap/versions.tf
+../../../stacks/roots/bootstrap/versions.tf

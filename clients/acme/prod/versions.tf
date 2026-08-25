@@ -1,1 +1,1 @@
-../../../stacks/environment/versions.tf
+../../../stacks/roots/environment/versions.tf

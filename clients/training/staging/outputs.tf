@@ -1,1 +1,1 @@
-../../../stacks/environment/outputs.tf
+../../../stacks/roots/environment/outputs.tf

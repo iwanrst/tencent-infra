@@ -1,1 +1,1 @@
-../../../stacks/environment/providers.tf
+../../../stacks/roots/environment/providers.tf

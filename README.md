@@ -14,7 +14,7 @@ modules/             The reusable logic. Nothing client-specific.
   tke/               Managed TKE cluster, node pools, endpoints, addons
   platform/          Composition root + environment-aware defaults
 
-stacks/              The generic Terraform roots. One canonical copy each.
+stacks/roots/        The generic Terraform roots. One canonical copy each.
   environment/       Root for any client+environment
   bootstrap/         Root for a client's state buckets
 
@@ -30,6 +30,13 @@ Each directory under `clients/` holds **only** `terraform.tfvars` and
 one copy of the root configuration in the repo and a fix lands for every client
 at once. Terraform resolves relative module sources from the symlink's own
 directory, which is what makes this work.
+
+`stacks/roots/*` sits at the same depth as `clients/<client>/<env>/` on
+purpose: `../../../modules/platform` has to resolve correctly both from the
+symlink and from the canonical file. If the two depths disagree, Terraform
+still works — it only ever runs from `clients/` — but terraform-ls reports
+every attribute as unexpected for anyone editing the real file. `make validate`
+checks both.
 
 ```bash
 make stacks                              # list every client stack
@@ -123,10 +130,10 @@ clients/training/staging/terraform.tfvars     # client, environment, region,
 
 ```bash
 for f in main.tf providers.tf variables.tf outputs.tf versions.tf; do
-  ln -sf ../../../stacks/environment/$f clients/training/staging/$f
+  ln -sf ../../../stacks/roots/environment/$f clients/training/staging/$f
 done
 for f in main.tf providers.tf variables.tf outputs.tf versions.tf backend_files.tf; do
-  ln -sf ../../../stacks/bootstrap/$f clients/training/bootstrap/$f
+  ln -sf ../../../stacks/roots/bootstrap/$f clients/training/bootstrap/$f
 done
 ```
 
