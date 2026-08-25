@@ -236,6 +236,23 @@ variable "restrict_egress" {
 # TKE
 ###############################################################################
 
+variable "enable_tke" {
+  description = <<-EOT
+    Create the TKE cluster and its node pools.
+
+    Set false to stand up networking only -- VPC, subnets, route tables, NAT and
+    the security group baseline -- and add the cluster in a later apply. Useful
+    when the address plan needs sign-off, or when peering / Direct Connect has
+    to land before any workload exists.
+
+    Turning it back on is purely additive: nothing created in the networking
+    phase is replaced, because the cluster consumes subnets and security groups
+    rather than owning them.
+  EOT
+  type        = bool
+  default     = true
+}
+
 variable "kubernetes_version" {
   description = "Kubernetes minor version to pin the cluster to."
   type        = string

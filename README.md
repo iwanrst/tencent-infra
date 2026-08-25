@@ -171,6 +171,22 @@ For a multi-account setup, set `assume_role_arn` and let Terraform hop into the
 client account with a scoped CAM role rather than holding long-lived keys per
 client.
 
+## Rolling out in phases
+
+`enable_tke = false` builds networking only — VPC, subnets, route tables, NAT
+and the security group baseline — and stops there. Useful when the address plan
+needs sign-off, or when peering / Direct Connect has to land before any
+workload exists.
+
+```hcl
+# clients/<client>/<env>/terraform.tfvars
+enable_tke = false
+```
+
+Phase 2 is flipping it to `true`. That is purely additive: the cluster consumes
+subnets and security groups rather than owning them, so nothing built in phase 1
+is replaced.
+
 ## Things worth knowing before the first apply
 
 - **`network_type` is permanent.** Switching between `VPC-CNI` and `GR` replaces

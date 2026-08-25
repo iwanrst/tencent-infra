@@ -177,6 +177,12 @@ variable "restrict_egress" {
 
 # --- TKE --------------------------------------------------------------------
 
+variable "enable_tke" {
+  description = "Create the TKE cluster. False deploys networking only."
+  type        = bool
+  default     = true
+}
+
 variable "kubernetes_version" {
   description = "Kubernetes version to pin."
   type        = string

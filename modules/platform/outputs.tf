@@ -57,33 +57,33 @@ output "security_group_ids" {
 
 output "cluster_id" {
   description = "TKE cluster ID."
-  value       = module.tke.cluster_id
+  value       = one(module.tke[*].cluster_id)
 }
 
 output "cluster_name" {
   description = "TKE cluster name."
-  value       = module.tke.cluster_name
+  value       = one(module.tke[*].cluster_name)
 }
 
 output "cluster_private_endpoint" {
   description = "Private Kubernetes API endpoint."
-  value       = module.tke.private_endpoint
+  value       = one(module.tke[*].private_endpoint)
 }
 
 output "cluster_public_endpoint" {
   description = "Public Kubernetes API endpoint, null when disabled."
-  value       = module.tke.public_endpoint
+  value       = one(module.tke[*].public_endpoint)
 }
 
 output "kube_config" {
   description = "Kubeconfig for the private endpoint."
-  value       = module.tke.kube_config
+  value       = one(module.tke[*].kube_config)
   sensitive   = true
 }
 
 output "node_pool_ids" {
   description = "Node pool IDs by name."
-  value       = module.tke.node_pool_ids
+  value       = one(module.tke[*].node_pool_ids)
 }
 
 ###############################################################################

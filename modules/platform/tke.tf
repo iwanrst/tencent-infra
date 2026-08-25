@@ -64,6 +64,7 @@ locals {
 
 module "tke" {
   source = "../tke"
+  count  = var.enable_tke ? 1 : 0
 
   name_prefix         = local.name_prefix
   cluster_description = "${var.client} ${var.environment} platform cluster"

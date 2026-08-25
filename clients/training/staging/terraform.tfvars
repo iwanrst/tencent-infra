@@ -44,6 +44,13 @@ public_ingress_ports = ["80", "443"]
 restrict_egress = false
 
 # --- TKE --------------------------------------------------------------------
+# PHASE 1: networking only. This builds the VPC, subnets, route tables, NAT and
+# the security group baseline, and stops there.
+#
+# Flip to true (or delete this line) for phase 2 -- it is purely additive, so
+# nothing built below is replaced when the cluster arrives.
+enable_tke = false
+
 kubernetes_version = "1.30.0"
 tke_network_type   = "VPC-CNI"
 

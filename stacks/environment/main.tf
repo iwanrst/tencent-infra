@@ -36,6 +36,7 @@ module "platform" {
   restrict_egress               = var.restrict_egress
 
   # TKE
+  enable_tke                 = var.enable_tke
   kubernetes_version         = var.kubernetes_version
   tke_network_type           = var.tke_network_type
   tke_cluster_cidr           = var.tke_cluster_cidr
