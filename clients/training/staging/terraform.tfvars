@@ -31,11 +31,25 @@ tiers = {
   eni    = { cidr_block = "10.30.64.0/18", az_newbits = 2 }
 }
 
+# --- Cost -------------------------------------------------------------------
+# The NAT gateway is the only resource here billed by the hour -- roughly
+# $95/month in Singapore whether or not any traffic flows. Everything else in
+# this stack (VPC, subnets, route tables, security groups) is free.
+#
+# Off while the address plan is being validated. Turning it on later adds three
+# resources -- gateway, EIP, and the 0.0.0.0/0 route -- and replaces nothing,
+# because the private route table is created either way.
+enable_nat_gateway = false
+
 # --- Access control ---------------------------------------------------------
-# REPLACE THESE before the first apply. They gate SSH to the bastion and, since
-# the public API endpoint is on below, access to the Kubernetes API too.
+# These gate SSH to the bastion and, since the public API endpoint is on below,
+# access to the Kubernetes API too. Neither exists yet in phase 1.
+#
+# NOT a static office range: this is the ISP's shared NAT pool, observed
+# handing out .9 and .80. It covers 256 addresses we do not control. Replace
+# with a real office/VPN range before anything is actually exposed.
 admin_cidrs = [
-  "103.121.17.0/24", # training office -- placeholder
+  "103.121.17.0/24", # ISP egress pool
 ]
 
 public_ingress_cidrs = ["0.0.0.0/0"]
@@ -44,8 +58,8 @@ public_ingress_ports = ["80", "443"]
 restrict_egress = false
 
 # --- TKE --------------------------------------------------------------------
-# PHASE 1: networking only. This builds the VPC, subnets, route tables, NAT and
-# the security group baseline, and stops there.
+# PHASE 1: networking only. Builds the VPC, subnets, route tables and the
+# security group baseline -- 25 resources, none of them billed.
 #
 # Flip to true (or delete this line) for phase 2 -- it is purely additive, so
 # nothing built below is replaced when the cluster arrives.
