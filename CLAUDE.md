@@ -37,6 +37,13 @@ catch-all DROP silently breaks every connection the tier originated.
 destroy` failing there is intended, not a bug. Removing a guard is a separate,
 deliberate commit.
 
+**Security groups are CVM resources, not VPC ones.** Creating one calls
+`cvm:CreateSecurityGroup`, so `QcloudVPCFullAccess` does not grant it and
+`QcloudCVMReadOnlyAccess` is not enough — the operator needs
+`QcloudCVMFullAccess`. The failure looks odd: VPC, subnets and route tables all
+create fine, then all six security groups fail at once. The full permission
+matrix is in `stacks/roots/bootstrap/README.md`.
+
 **The COS backend locks via the tag service, not a lock file.** It takes the
 tag key `tencentcloud-terraform-lock`, so any identity running Terraform needs
 `tag:CreateTag`, `tag:DeleteTag` and `tag:DescribeTags` on top of COS access —

@@ -30,23 +30,31 @@ bucket is the only boundary a COS policy can express cleanly.
 
 The sub-account running Terraform needs, at minimum:
 
-| Policy | For |
-|---|---|
-| `QcloudCOSFullAccess` | creating the bucket and reading/writing state |
-| `QcloudCAMFullAccess` | creating the per-bucket state policies |
-| `QcloudVPCFullAccess` | everything the environment stack builds |
-| `QcloudCVMReadOnlyAccess` | the availability-zone lookup |
-| **tag `CreateTag` / `DeleteTag` / `DescribeTags`** | **state locking — see below** |
+| Policy | For | Needed from |
+|---|---|---|
+| `QcloudCOSFullAccess` | creating the bucket, reading/writing state | bootstrap |
+| `QcloudCAMFullAccess` | creating the per-bucket state policies | bootstrap |
+| **tag `CreateTag` / `DeleteTag` / `DescribeTags`** | **state locking** | bootstrap |
+| `QcloudVPCFullAccess` | VPC, subnets, route tables, NAT gateways, EIPs | networking |
+| **`QcloudCVMFullAccess`** | **security groups, and later the worker nodes** | networking |
+| `QcloudTKEFullAccess` | the cluster and its node pools | `enable_tke = true` |
+| `QcloudCLSFullAccess` | flow logs, cluster audit and event logs | prod / TKE |
 
-That last row is the one people miss. The COS backend does not lock with a file
-beside the state; it takes a lock in the Tencent **tag** service on the tag key
-`tencentcloud-terraform-lock`. None of the `Qcloud*FullAccess` policies above
-grant tag actions, so without them every command fails at
-`Error acquiring the state lock` with `tag:CreateTag ... has no permission`.
+Two of these are counter-intuitive and account for most first-run failures.
 
-Convenient fix: once bootstrap has run, attach the `<client>-tfstate-<env>`
-policy it generated to the same sub-account — that policy already carries the
-three tag verbs. Until then, `-lock=false` gets a one-off command through.
+**Security groups are CVM resources, not VPC ones.** Creating one calls
+`cvm:CreateSecurityGroup`, so `QcloudVPCFullAccess` does not cover it and
+read-only CVM access is not enough. Symptom: the VPC, subnets and route tables
+all create successfully, then every security group fails with
+`UnauthorizedOperation ... (cvm:CreateSecurityGroup)`.
+
+**The COS backend locks in the tag service**, not with a file beside the state.
+It uses the tag key `tencentcloud-terraform-lock`, and no `Qcloud*FullAccess`
+policy grants tag actions. Symptom: `Error acquiring the state lock ...
+tag:CreateTag ... has no permission`. Convenient fix: once bootstrap has run,
+attach the `<client>-tfstate-<env>` policy it generated to the same sub-account
+— that policy already carries the three verbs. Until then, `-lock=false` gets a
+one-off command through.
 
 ## First run
 
