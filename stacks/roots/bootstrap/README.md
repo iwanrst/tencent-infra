@@ -26,6 +26,28 @@ One bucket **per environment**, not one shared bucket with prefixes: a
 credential scoped to staging must have no path to production state, and the
 bucket is the only boundary a COS policy can express cleanly.
 
+## Permissions the operator needs
+
+The sub-account running Terraform needs, at minimum:
+
+| Policy | For |
+|---|---|
+| `QcloudCOSFullAccess` | creating the bucket and reading/writing state |
+| `QcloudCAMFullAccess` | creating the per-bucket state policies |
+| `QcloudVPCFullAccess` | everything the environment stack builds |
+| `QcloudCVMReadOnlyAccess` | the availability-zone lookup |
+| **tag `CreateTag` / `DeleteTag` / `DescribeTags`** | **state locking — see below** |
+
+That last row is the one people miss. The COS backend does not lock with a file
+beside the state; it takes a lock in the Tencent **tag** service on the tag key
+`tencentcloud-terraform-lock`. None of the `Qcloud*FullAccess` policies above
+grant tag actions, so without them every command fails at
+`Error acquiring the state lock` with `tag:CreateTag ... has no permission`.
+
+Convenient fix: once bootstrap has run, attach the `<client>-tfstate-<env>`
+policy it generated to the same sub-account — that policy already carries the
+three tag verbs. Until then, `-lock=false` gets a one-off command through.
+
 ## First run
 
 ```bash

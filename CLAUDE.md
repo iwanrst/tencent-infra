@@ -38,10 +38,13 @@ destroy` failing there is intended, not a bug. Removing a guard is a separate,
 deliberate commit.
 
 **The COS backend locks via the tag service, not a lock file.** It takes the
-tag key `tencentcloud-terraform-lock`, so any role running Terraform needs
-`tag:CreateTag`, `tag:DeleteTag` and `tag:DescribeTags` on top of COS access.
-`stacks/roots/bootstrap` grants these. Missing them shows up as apply hanging
-until lock timeout, not as a permission error.
+tag key `tencentcloud-terraform-lock`, so any identity running Terraform needs
+`tag:CreateTag`, `tag:DeleteTag` and `tag:DescribeTags` on top of COS access —
+**including the human operator's sub-account**, not just CI. No
+`Qcloud*FullAccess` policy grants tag actions. Missing them fails immediately
+with `Error acquiring the state lock ... tag:CreateTag ... has no permission`.
+Fix by attaching the `<client>-tfstate-<env>` policy that `bootstrap` generates,
+which already carries the three verbs; `-lock=false` unblocks a one-off command.
 
 **The public TKE endpoint is allowlisted by security group, not by
 `managed_cluster_internet_security_policies`.** That field is deprecated and,
