@@ -10,7 +10,7 @@ module "vpc" {
   availability_zones = local.availability_zones
   tiers              = var.tiers
 
-  enable_nat_gateway    = true
+  enable_nat_gateway    = var.enable_nat_gateway
   nat_gateway_mode      = local.nat_gateway_mode
   nat_gateway_bandwidth = var.nat_gateway_bandwidth
 

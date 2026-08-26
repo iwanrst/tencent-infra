@@ -77,6 +77,12 @@ variable "extra_routes" {
 
 # --- Cost / resilience ------------------------------------------------------
 
+variable "enable_nat_gateway" {
+  description = "Provision NAT gateway(s) for private-tier egress. False builds the network at zero running cost."
+  type        = bool
+  default     = true
+}
+
 variable "nat_gateway_mode" {
   description = "\"single\" or \"per_az\". Null uses the environment default."
   type        = string

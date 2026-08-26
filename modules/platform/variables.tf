@@ -99,6 +99,23 @@ variable "tiers" {
   }
 }
 
+variable "enable_nat_gateway" {
+  description = <<-EOT
+    Provision NAT gateway(s) so the private tiers can reach the internet
+    outbound.
+
+    This is the only meaningful running cost in a networking-only stack: the
+    gateway is billed per hour whether or not traffic flows, while the VPC,
+    subnets, route tables and security groups are free. Set false to stand up
+    and validate the address plan at zero cost.
+
+    With it off, private tiers simply have no default route. Turning it on later
+    adds the gateway and the 0.0.0.0/0 route without touching the subnets.
+  EOT
+  type        = bool
+  default     = true
+}
+
 variable "nat_gateway_mode" {
   description = "\"per_az\" for zone-isolated egress (prod), \"single\" to save cost (dev/staging). Defaults by environment."
   type        = string

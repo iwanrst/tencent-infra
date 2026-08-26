@@ -25,10 +25,15 @@ lint: ## Format check + tflint across modules and envs
 	terraform fmt -check -recursive .
 	tflint --recursive --config=$(CURDIR)/.tflint.hcl
 
+# init is allowed to fail here and its output is discarded. Once a stack has
+# been initialised against COS, `-backend=false` still reads the recorded
+# backend and dies without credentials -- but `terraform validate` needs no
+# backend at all, so let validate decide the outcome. A genuinely broken module
+# or provider tree still fails, because validate reports it.
 validate: ## Validate the shared roots and every client stack, without remote state
 	@for d in stacks/roots/environment stacks/roots/bootstrap $$(find clients -mindepth 2 -maxdepth 2 -type d); do \
 	  echo "==> $$d"; \
-	  terraform -chdir=$$d init -backend=false -input=false >/dev/null && \
+	  terraform -chdir=$$d init -backend=false -input=false >/dev/null 2>&1 || true; \
 	  terraform -chdir=$$d validate || exit 1; \
 	done
 

@@ -20,6 +20,7 @@ module "platform" {
   extra_routes       = var.extra_routes
 
   # Cost / resilience knobs (null = environment default)
+  enable_nat_gateway    = var.enable_nat_gateway
   nat_gateway_mode      = var.nat_gateway_mode
   nat_gateway_bandwidth = var.nat_gateway_bandwidth
   enable_flow_logs      = var.enable_flow_logs
