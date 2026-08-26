@@ -24,3 +24,7 @@ override.tf.json
 terraform.rc
 
 .DS_Store
+
+# Throwaway roots used to render a plan offline. These belong in a scratch
+# directory outside the repo; ignore them so a stray one cannot be committed.
+clients/*/_*/
