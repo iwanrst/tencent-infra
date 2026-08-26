@@ -35,7 +35,7 @@ tiers = {
 # REPLACE THESE before the first apply. They gate SSH to the bastion and, since
 # the public API endpoint is on below, access to the Kubernetes API too.
 admin_cidrs = [
-  "203.0.113.0/24", # training office -- placeholder
+  "103.121.17.0/24", # training office -- placeholder
 ]
 
 public_ingress_cidrs = ["0.0.0.0/0"]

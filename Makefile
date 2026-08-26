@@ -47,10 +47,24 @@ bootstrap: ## Create this client's state buckets and write its backend.hcl (run 
 	@echo "  make bootstrap-adopt CLIENT=$(CLIENT)"
 
 bootstrap-adopt: ## Migrate this client's bootstrap state off the local file into COS
+	@test -f $(BOOTDIR)/terraform.tfstate || { \
+	  echo "No local state at $(BOOTDIR)/terraform.tfstate."; \
+	  echo "Either this client has already adopted, or bootstrap has not been run."; \
+	  exit 1; }
 	terraform -chdir=$(BOOTDIR) output -raw self_backend_hcl > $(BOOTDIR)/backend.hcl
+	# The shared root deliberately declares no backend, so the first run can use
+	# local state. Migrating requires one to exist -- write it per client, so a
+	# client that has not adopted yet is unaffected.
+	printf 'terraform {\n  backend "cos" {}\n}\n' > $(BOOTDIR)/backend.tf
 	terraform -chdir=$(BOOTDIR) init -backend-config=backend.hcl -migrate-state
-	@rm -f $(BOOTDIR)/terraform.tfstate $(BOOTDIR)/terraform.tfstate.backup
-	@echo "$(CLIENT) bootstrap now stores its state in COS."
+	@terraform -chdir=$(BOOTDIR) state list > /dev/null 2>&1 || { \
+	  echo "Remote state is not readable. Local state left untouched -- do not delete it."; \
+	  exit 1; }
+	@echo
+	@echo "$(CLIENT) bootstrap state is now in COS."
+	@echo "Local state kept at $(BOOTDIR)/terraform.tfstate as a safety copy."
+	@echo "Verify with: terraform -chdir=$(BOOTDIR) state list"
+	@echo "Then remove it by hand once you are satisfied."
 
 # --- per environment --------------------------------------------------------
 

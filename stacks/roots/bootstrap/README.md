@@ -57,6 +57,31 @@ Its state lands under the `bootstrap/` prefix of the production bucket. Skip
 this and `clients/<client>/bootstrap/terraform.tfstate` stays on one laptop — which is exactly
 the failure mode this repo exists to avoid.
 
+The target writes a small `backend.tf` into that client's directory first. It
+has to: this root deliberately declares no backend so the first run can use
+local state, and `-migrate-state` needs a backend block to migrate *into*.
+Pointing `-backend-config` at a config with no backend block does nothing and
+only prints a warning — so the local state file is kept until
+`terraform state list` reads the remote state back. Commit the generated
+`backend.tf` along with `backend.hcl`.
+
+### If the local state was lost before it migrated
+
+The resources still exist; only Terraform's record of them is gone. Recreate it
+by importing, rather than re-running `bootstrap`, which would fail on names
+that already exist:
+
+```bash
+cd clients/<client>/bootstrap
+terraform init -backend-config=backend.hcl -reconfigure
+terraform import 'tencentcloud_cos_bucket.state["staging"]'      <bucket-name>
+terraform import 'tencentcloud_cam_policy.state_access["staging"]' <policy-id>
+terraform plan   # expect only local_file to be re-created
+```
+
+`local_file.env_backend` needs no import — the next apply rewrites the same
+content.
+
 ## Notes
 
 - **Object lock is deliberately not enabled.** It would prevent Terraform from
