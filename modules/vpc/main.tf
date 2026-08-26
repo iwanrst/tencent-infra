@@ -44,9 +44,6 @@ locals {
   # Private route tables: one per AZ under per_az, otherwise a single shared one.
   private_route_table_keys = var.nat_gateway_mode == "per_az" ? var.availability_zones : ["shared"]
 
-  # NAT gateways are placed in the first public tier, one subnet per NAT zone.
-  public_tier_key = local.has_public ? sort([for k, t in var.tiers : k if t.public])[0] : null
-
   # EIP instances, keyed "<zone>/<index>", so adding capacity never churns existing IPs.
   nat_eips = local.create_nat ? merge([
     for zone in local.nat_zones : {
