@@ -140,7 +140,12 @@ variable "enable_public_endpoint" {
 }
 
 variable "public_endpoint_allowed_cidrs" {
-  description = "CIDRs allowed to reach the public API server. An empty list with the public endpoint enabled is rejected -- 0.0.0.0/0 must be deliberate."
+  description = <<-EOT
+    CIDRs allowed to reach the public API server. Enforcement happens through
+    `public_endpoint_security_group_id`, which the caller builds from this same
+    list; this variable exists to make the guard below possible, so a public
+    endpoint can never be enabled without someone naming who may reach it.
+  EOT
   type        = list(string)
   default     = []
 

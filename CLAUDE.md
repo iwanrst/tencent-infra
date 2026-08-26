@@ -43,6 +43,13 @@ tag key `tencentcloud-terraform-lock`, so any role running Terraform needs
 `stacks/roots/bootstrap` grants these. Missing them shows up as apply hanging
 until lock timeout, not as a permission error.
 
+**The public TKE endpoint is allowlisted by security group, not by
+`managed_cluster_internet_security_policies`.** That field is deprecated and,
+once set, can never be emptied or removed — flipping the public endpoint off
+later would leave a value Terraform cannot reconcile. `modules/platform` builds
+a `tke-api` group from `admin_cidrs` and passes it as
+`cluster_internet_security_group` instead.
+
 **`terraform output -raw` takes an output name, not an index expression.** Use
 `terraform output -json <name> | jq -r '.<key>'` for a map output.
 

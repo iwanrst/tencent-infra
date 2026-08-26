@@ -130,12 +130,17 @@ resource "tencentcloud_kubernetes_cluster_endpoint" "this" {
   cluster_intranet           = var.enable_private_endpoint
   cluster_intranet_subnet_id = var.enable_private_endpoint ? var.private_endpoint_subnet_id : null
 
+  # The security group IS the allowlist for the public endpoint. The provider's
+  # `managed_cluster_internet_security_policies` is deprecated in favour of this,
+  # and carries a trap worth avoiding: once set it can never be emptied or
+  # removed, so turning the public endpoint off later would leave a field
+  # Terraform cannot reconcile.
+  #
+  # The caller builds this group from its administrative CIDRs, so the allowlist
+  # is expressed once, as ordinary security group rules that can be read and
+  # audited like every other rule in the stack.
   cluster_internet                = var.enable_public_endpoint
   cluster_internet_security_group = var.enable_public_endpoint ? var.public_endpoint_security_group_id : null
-
-  # Belt and braces: the security group above filters at the network layer, this
-  # is TKE's own API-level allowlist. Both must permit the caller.
-  managed_cluster_internet_security_policies = var.enable_public_endpoint ? var.public_endpoint_allowed_cidrs : null
 
   depends_on = [tencentcloud_kubernetes_node_pool.this]
 }
