@@ -37,6 +37,12 @@ catch-all DROP silently breaks every connection the tier originated.
 destroy` failing there is intended, not a bug. Removing a guard is a separate,
 deliberate commit.
 
+**The COS backend locks via the tag service, not a lock file.** It takes the
+tag key `tencentcloud-terraform-lock`, so any role running Terraform needs
+`tag:CreateTag`, `tag:DeleteTag` and `tag:DescribeTags` on top of COS access.
+`stacks/roots/bootstrap` grants these. Missing them shows up as apply hanging
+until lock timeout, not as a permission error.
+
 **`terraform output -raw` takes an output name, not an index expression.** Use
 `terraform output -json <name> | jq -r '.<key>'` for a map output.
 

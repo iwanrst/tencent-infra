@@ -7,7 +7,7 @@
 ###############################################################################
 
 locals {
-  app_id = data.tencentcloud_user_info.current.app_id
+  app_id = "1250000000"
 
   suffix = var.bucket_name_suffix == "" ? "" : "-${var.bucket_name_suffix}"
 
